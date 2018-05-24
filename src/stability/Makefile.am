@@ -1,6 +1,12 @@
 if BUILD_MPI
     MAYBE_MPI = epmpi
 endif
+
+if BUILD_CUDAPAPI
+	MAYBE_CUDAPAPI = cudapapi.cpp
+  MAYBE_CUDAPAPI_OBJS = $(top_builddir)/src/cuda/level1/fft/cudapapi.o
+endif
+
 SUBDIRS = $(MAYBE_MPI)
 
 include $(top_builddir)/config/config.mk
@@ -20,6 +26,5 @@ serialcuda_PROGRAMS = Stability
 
 # How to build those programs?
 Stability_SOURCES = Stability.cpp \
-                main.cpp
-Stability_LDADD = $(top_builddir)/src/cuda/level1/fft/fftlib.o $(CUDA_LIBS) -lcufft $(LIBS)
-
+                main.cpp $(MAYBE_CUDAPAPI)
+Stability_LDADD = $(top_builddir)/src/cuda/level1/fft/fftlib.o $(CUDA_LIBS) -lcufft $(LIBS) $(MAYBE_CUDAPAPI_OBJS)

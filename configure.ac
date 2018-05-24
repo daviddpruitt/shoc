@@ -13,8 +13,8 @@ AC_CONFIG_HEADERS([config/config.h])
 AC_LANG([C++])
 
 # Because of the nature of SHOC (a collection of benchmark programs),
-# autoconf's default prefix (/usr/local) is not appropriate. 
-# Instead, we set the default installation location to be the build 
+# autoconf's default prefix (/usr/local) is not appropriate.
+# Instead, we set the default installation location to be the build
 # location.
 AC_PREFIX_DEFAULT(`pwd`)
 
@@ -29,7 +29,7 @@ AC_PATH_PROG([UNZIP], [unzip])
 
 
 # check whether special NVCXXFLAGS were specified
-# if not, set default flags based on whehter we are using g++ and whether our
+# if not, set default flags based on whether we are using g++ and whether our
 # C++ compiler supports -g.
 # Logic based on the logic used in the AC_PROG_CXX macro.
 ac_save_NVCXXFLAGS=${NVCXXFLAGS}
@@ -88,7 +88,7 @@ AS_IF([test "x$ac_cv_func_clock_gettime" = xyes],
                     [AC_MSG_RESULT([no])]
       )
     ]
-)    
+)
 
 
 
@@ -222,13 +222,13 @@ AS_IF([test "x$with_cuda" != xno],
         AS_IF([test "x$with_cuda" = xyes],
             [AS_IF([test "x$CUDA_CPPFLAGS" = x],
                 [dnl generate CUDA code for broad spectrum of devices
-                 dnl Note: cc 13 for Tesla
-                 dnl Note: cc 20 for Fermi
-                 dnl Note: cc 30 for Kepler
-                 CUDA_CPPFLAGS=["-gencode=arch=compute_12,code=sm_12 \
- -gencode=arch=compute_13,code=sm_13 \
- -gencode=arch=compute_20,code=sm_20 \
- -gencode=arch=compute_20,code=compute_20"]
+                 dnl Note: cc 35 for late Kepler (K20 K30)
+                 dnl Note: cc 50 for Maxwell
+                 dnl Note: cc 60 for Pascal
+                 CUDA_CPPFLAGS=["-gencode=arch=compute_35,code=sm_35 \
+                                 -gencode=arch=compute_50,code=sm_50 \
+                                 -gencode=arch=compute_60,code=sm_60 \
+                                 -gencode=arch=compute_70,code=sm_70"]
                  AC_MSG_NOTICE([using CUDA_CPPFLAGS=$CUDA_CPPFLAGS])
                  AC_MSG_WARN([*** SHOC programs may fail if these -gencode values do not apply to your GPU.  If they don't apply, or if you want to shorten SHOC's compile time, determine the -gencode options that apply for your GPU and re-configure SHOC explicitly specifying only those options in CUDA_CPPFLAGS during the configure. ***])
                 ]
@@ -239,6 +239,32 @@ AS_IF([test "x$with_cuda" != xno],
     ]
 )
 AM_CONDITIONAL([BUILD_CUDA], [test "x$with_cuda" = "xyes"])
+
+# CUDA PAPI counter support
+AC_ARG_WITH([cudapapi],
+    [AS_HELP_STRING([--with-cuda-papi],
+        [build papi counter support into the cuda versions of the SHOC programs @<:@default=no@:>@])],
+    [],
+    [with_cudapapi=no])
+
+USE_CUDAPAPI=no
+AS_IF([test "x$with_cudapapi" = xyes],
+    [
+        # check for papi header
+        AC_CHECK_HEADERS([papi.h],[],
+          [with_cudapapi=no]
+        )
+
+        AS_IF([test "x$with_cudapapi" != xno],
+          [USE_CUDAPAPI=yes
+           LDFLAGS="$LDFLAGS -lpfm -lpapi"
+           AC_MSG_WARN([*** Verify that the CUDA component is built into PAPI otherwise the build will fail ***])
+          ],
+          [AC_MSG_NOTICE([papi.h header not found])]
+        )
+    ]
+)
+AM_CONDITIONAL([BUILD_CUDAPAPI], [test "x$with_cudapapi" = "xyes"])
 
 # build documentation? by default, just copy existing documentation
 AC_ARG_ENABLE([builddoc],
@@ -296,7 +322,7 @@ AS_IF([test "x$enable_dataunzip" != xno],
         AS_IF([test "$UNZIP" != ''],
             [
                         # we have been asked to unzip and move data,
-                        # we have unzip 
+                        # we have unzip
                         COND_DATAUNZIP=yes
                     ]
                 )
@@ -335,7 +361,7 @@ AS_IF([test "x$enable_stability" = xyes],
         ]
         )]
     )]
-    
+
 )
 AM_CONDITIONAL([BUILD_STABILITY], [test "x$COND_STABILITY" = "xyes"])
 
@@ -350,7 +376,7 @@ AC_ARG_WITH([mpi],
 
 USE_MPI=no
 AS_IF([test "x$with_mpi" != xno],
-    [ 
+    [
         AC_PATH_PROGS([MPICXX], [[$MPICXX] mpicxx mpic++ mpiCC])
         savedCXX=$CXX
         CXX=$MPICXX
@@ -406,6 +432,7 @@ AM_CONDITIONAL([BUILD_MPI], [test "x$with_mpi" = "xyes"])
 AC_SUBST([USE_MPI])
 AC_SUBST([MPICXX])
 AC_SUBST([USE_CUDA])
+AC_SUBST([USE_CUDAPAPI])
 AC_SUBST([MPI_SUBDIRS])
 AC_SUBST([NVCXXFLAGS])
 

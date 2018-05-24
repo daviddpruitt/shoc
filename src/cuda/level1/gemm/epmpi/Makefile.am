@@ -1,6 +1,11 @@
 include $(top_builddir)/config/config.mk
 include $(top_builddir)/config/targets.mk
 
+if BUILD_CUDAPAPI
+  MAYBE_CUDAPAPI = cudapapi.cpp
+  MAYBE_CUDAPAPI_FLAGS = -DCUDAPAPI
+endif
+
 # How to find source files
 VPATH = $(srcdir)/..:$(srcdir)/../../../common:$(srcdir)/../../../../common
 
@@ -9,7 +14,8 @@ CXX = ${MPICXX}
 CXXLD = ${MPICXX}
 
 AM_LDFLAGS = $(CUDA_LDFLAGS)
-AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common
+AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common $(MAYBE_CUDAPAPI_FLAGS)
+
 
 # What is the destination for programs built from this directory?
 epcudadir = $(bindir)/EP/CUDA
@@ -19,6 +25,5 @@ epcuda_PROGRAMS = GEMM
 
 # How to build those programs?
 GEMM_SOURCES = GEMM.cpp \
-                main.cpp
+                main.cpp $(MAYBE_CUDAPAPI)
 GEMM_LDADD = $(CUDA_LIBS) -lcublas $(LIBS)
-

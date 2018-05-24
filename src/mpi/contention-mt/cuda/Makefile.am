@@ -1,6 +1,10 @@
 include $(top_builddir)/config/config.mk
 include $(top_builddir)/config/targets.mk
 
+if BUILD_CUDAPAPI
+	MAYBE_CUDAPAPI_OBJS = $(top_builddir)/src/cuda/level0/cudapapi.o
+endif
+
 # How to find source files
 VPATH = $(srcdir):$(srcdir)/..:$(top_srcdir)/src/cuda/level0
 
@@ -21,5 +25,4 @@ epcuda_PROGRAMS = MTBusCont
 MTBusCont_SOURCES = CUDADriver.cpp \
 					MTBusCont.cpp \
 					mtbcmain.cpp
-MTBusCont_LDADD = $(top_builddir)/src/cuda/level0/BusSpeedDownload.o -lSHOCCommonMPI $(CUDA_LIBS) $(LIBS)
-
+MTBusCont_LDADD = $(top_builddir)/src/cuda/level0/BusSpeedDownload.o -lSHOCCommonMPI $(CUDA_LIBS) $(LIBS) $(MAYBE_CUDAPAPI_OBJS)

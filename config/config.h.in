@@ -58,6 +58,9 @@
 /* Define to 1 if you have the `memset' function. */
 #undef HAVE_MEMSET
 
+/* Define to 1 if you have the <papi.h> header file. */
+#undef HAVE_PAPI_H
+
 /* Define to 1 if you have the `pow' function. */
 #undef HAVE_POW
 

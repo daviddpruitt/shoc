@@ -1,6 +1,12 @@
 if BUILD_MPI
     MAYBE_MPI = epmpi
 endif
+
+if BUILD_CUDAPAPI
+  MAYBE_CUDAPAPI = cudapapi.cpp
+  MAYBE_CUDAPAPI_FLAGS = -DCUDAPAPI
+endif
+
 SUBDIRS = $(MAYBE_MPI)
 
 include $(top_builddir)/config/config.mk
@@ -10,7 +16,7 @@ include $(top_builddir)/config/targets.mk
 VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
 
 AM_LDFLAGS = $(CUDA_LDFLAGS)
-AM_CPPFLAGS = $(CUDA_INC)
+AM_CPPFLAGS = $(CUDA_INC) $(MAYBE_CUDAPAPI_FLAGS)
 
 # What is the destination for programs built from this directory?
 serialcudadir = $(bindir)/Serial/CUDA
@@ -19,7 +25,7 @@ serialcudadir = $(bindir)/Serial/CUDA
 serialcuda_PROGRAMS = NeuralNet
 
 # How to build those programs?
-NeuralNet_SOURCES = main.cpp
+NeuralNet_SOURCES = main.cpp $(MAYBE_CUDAPAPI)
 NeuralNet_LDADD = NeuralNet.o $(CUDA_LIBS) $(LIBS) -lcublas
 
 # Unzip and move data to the bin directory, if supported
@@ -38,5 +44,5 @@ install-data-local:
 	cp -prf nn_data $(bindir)/.
 endif
 
-clean: 
+clean:
 	rm -rf nn_data NeuralNet

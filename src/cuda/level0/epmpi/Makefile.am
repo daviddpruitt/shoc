@@ -1,5 +1,9 @@
 include $(top_builddir)/config/config.mk
 include $(top_builddir)/config/targets.mk
+if BUILD_CUDAPAPI
+  MAYBE_CUDAPAPI = cudapapi.cpp
+	MAYBE_CUDAPAPI_FLAGS = -DCUDAPAPI
+endif
 
 # How to find source files
 VPATH = $(srcdir)/..:$(srcdir)/../../common
@@ -8,7 +12,7 @@ VPATH = $(srcdir)/..:$(srcdir)/../../common
 CXX = ${MPICXX}
 CXXLD = ${MPICXX}
 
-AM_LDFLAGS = $(CUDA_LDFLAGS)
+AM_LDFLAGS = $(CUDA_LDFLAGS) $(MAYBE_CUDAPAPI_FLAGS)
 AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common
 
 # What is the destination for programs built from this directory?
@@ -20,15 +24,14 @@ epcuda_PROGRAMS = BusSpeedDownload \
 						DeviceMemory \
 						MaxFlops
 
-BusSpeedDownload_SOURCES	= main.cpp
+BusSpeedDownload_SOURCES	= main.cpp $(MAYBE_CUDAPAPI)
 BusSpeedDownload_LDADD		= BusSpeedDownload.o $(CUDA_LIBS) $(LIBS)
 
-BusSpeedReadback_SOURCES	= main.cpp
+BusSpeedReadback_SOURCES	= main.cpp $(MAYBE_CUDAPAPI)
 BusSpeedReadback_LDADD		= BusSpeedReadback.o $(CUDA_LIBS) $(LIBS)
 
-DeviceMemory_SOURCES	= main.cpp
+DeviceMemory_SOURCES	= main.cpp $(MAYBE_CUDAPAPI)
 DeviceMemory_LDADD		= DeviceMemory.o $(CUDA_LIBS) $(LIBS)
 
-MaxFlops_SOURCES	= main.cpp
+MaxFlops_SOURCES	= main.cpp $(MAYBE_CUDAPAPI)
 MaxFlops_LDADD		= MaxFlops.o $(CUDA_LIBS) $(LIBS)
-

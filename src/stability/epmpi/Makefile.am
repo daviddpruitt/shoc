@@ -1,6 +1,10 @@
 include $(top_builddir)/config/config.mk
 include $(top_builddir)/config/targets.mk
 
+if BUILD_CUDAPAPI
+	MAYBE_CUDAPAPI_OBJS = $(top_builddir)/src/cuda/level1/fft/cudapapi.o
+endif
+
 # How to find source files
 VPATH = $(srcdir)/..:$(top_srcdir)/src/cuda/common
 
@@ -20,5 +24,4 @@ epcuda_PROGRAMS = Stability_mpi
 # How to build those programs?
 Stability_mpi_SOURCES = Stability.cpp \
                 main.cpp
-Stability_mpi_LDADD = $(top_builddir)/src/cuda/level1/fft/fftlib.o $(CUDA_LIBS) -lcufft $(LIBS)
-
+Stability_mpi_LDADD = $(top_builddir)/src/cuda/level1/fft/fftlib.o $(CUDA_LIBS) -lcufft $(LIBS) $(MAYBE_CUDAPAPI_OBJS)

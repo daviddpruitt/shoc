@@ -24,6 +24,12 @@
 #include <NodeInfo.h>
 #endif
 
+// FIXME
+#define PAPI
+#ifdef PAPI
+#include "cudapapi.h"
+#endif
+
 using namespace std;
 
 // Forward Declarations
@@ -195,6 +201,10 @@ int main(int argc, char *argv[])
         }
 #else
         device = op.getOptionVecInt("device")[0];
+#endif
+
+#ifdef PAPI
+        InitCudaPapi();
 #endif
         int deviceCount;
         cudaGetDeviceCount(&deviceCount);

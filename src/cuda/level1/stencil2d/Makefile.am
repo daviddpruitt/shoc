@@ -1,6 +1,12 @@
 if BUILD_MPI
     MAYBE_MPI = tpmpi
 endif
+
+if BUILD_CUDAPAPI
+  MAYBE_CUDAPAPI = cudapapi.cpp
+  MAYBE_CUDAPAPI_FLAGS = -DCUDAPAPI
+endif
+
 SUBDIRS = $(MAYBE_MPI)
 
 include $(top_builddir)/config/config.mk
@@ -10,7 +16,7 @@ include $(top_builddir)/config/targets.mk
 VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
 
 AM_LDFLAGS = $(CUDA_LDFLAGS)
-AM_CPPFLAGS = $(CUDA_INC)
+AM_CPPFLAGS = $(CUDA_INC) $(MAYBE_CUDAPAPI_FLAGS)
 
 # What is the destination for programs built from this directory?
 serialcudadir = $(bindir)/Serial/CUDA
@@ -23,6 +29,5 @@ Stencil2D_SOURCES = CUDAStencil.cpp \
 				CommonCUDAStencilFactory.cpp \
 				Stencil2Dmain.cpp \
 				CUDAStencilFactory.cpp \
-                main.cpp
+                main.cpp $(MAYBE_CUDAPAPI)
 Stencil2D_LDADD = CUDAStencilKernel.o $(CUDA_LIBS) $(LIBS)
-
