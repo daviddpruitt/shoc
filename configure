@@ -6124,8 +6124,10 @@ done
         if test "x$with_cudapapi" != xno; then :
   USE_CUDAPAPI=yes
            LDFLAGS="$LDFLAGS -lpfm -lpapi"
-           { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: *** Verify that the CUDA component is built into PAPI otherwise the build will fail ***" >&5
-$as_echo "$as_me: WARNING: *** Verify that the CUDA component is built into PAPI otherwise the build will fail ***" >&2;}
+           CUDA_CPPFLAGS="$CUDA_CPPFLAGS -DCUDAPAPI"
+           CXXFLAGS="$CXXFLAGS -DCUDAPAPI"
+           { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: *** Verify that the CUDA component is built into PAPI otherwise the build will fail $CUDA_CPPFLAGS ***" >&5
+$as_echo "$as_me: WARNING: *** Verify that the CUDA component is built into PAPI otherwise the build will fail $CUDA_CPPFLAGS ***" >&2;}
 
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: papi.h header not found" >&5

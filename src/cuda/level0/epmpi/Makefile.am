@@ -12,8 +12,8 @@ VPATH = $(srcdir)/..:$(srcdir)/../../common
 CXX = ${MPICXX}
 CXXLD = ${MPICXX}
 
-AM_LDFLAGS = $(CUDA_LDFLAGS) $(MAYBE_CUDAPAPI_FLAGS)
-AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common
+AM_LDFLAGS = $(CUDA_LDFLAGS)
+AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) $(MAYBE_CUDAPAPI_FLAGS) -I$(top_srcdir)/src/mpi/common
 
 # What is the destination for programs built from this directory?
 epcudadir = $(bindir)/EP/CUDA

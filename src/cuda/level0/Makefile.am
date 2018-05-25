@@ -15,8 +15,8 @@ include $(top_builddir)/config/targets.mk
 # How to find source files
 VPATH = $(srcdir):$(srcdir)/../common
 
-AM_LDFLAGS = $(CUDA_LDFLAGS) $(MAYBE_CUDAPAPI_FLAGS)
-AM_CPPFLAGS = $(CUDA_INC)
+AM_LDFLAGS = $(CUDA_LDFLAGS)
+AM_CPPFLAGS = $(CUDA_INC) $(MAYBE_CUDAPAPI_FLAGS)
 
 # What is the destination for programs built from this directory?
 serialcudadir = $(bindir)/Serial/CUDA

@@ -9,6 +9,7 @@
 #include "ResultDatabase.h"
 #include "Timer.h"
 #include "Utility.h"
+#include "cudapapi.h"
 
 // ****************************************************************************
 // Function: addBenchmarkSpecOptions
@@ -127,6 +128,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
         // Step through sizes forward
         for (int i = 0; i < nSizes; ++i)
         {
+            double time;
             int elemsInBlock = blockSizes[i] * 1024 / sizeof(float);
             for (int j = 0; j < halfNumFloats; ++j)
                 h_mem[j] = h_mem[halfNumFloats + j]
@@ -151,6 +153,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
             cudaStreamCreate(&streams[1]);
             CHECK_CUDA_ERROR();
 
+            //StartPapiCounts(&cudaPapiTestVal);
             int TH = Timer::Start();
 
             cudaMemcpyAsync(d_memA0, h_mem, blockSizes[i] * 1024,
@@ -237,7 +240,9 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
             }
 
             cudaThreadSynchronize();
-            double time = Timer::Stop(TH, "thread synchronize");
+            time = Timer::Stop(TH, "thread synchronize");
+
+            //StopPapiCounts("Triad", sizeStr, resultDB, &cudaPapiTestVal);
 
             double triad = ((double)numMaxFloats * 2.0) / (time*1e9);
             resultDB.AddResult("TriadFlops", sizeStr, "GFLOP/s", triad);

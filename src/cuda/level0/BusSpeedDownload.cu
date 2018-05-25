@@ -129,6 +129,7 @@ void RunBenchmark(ResultDatabase &resultDB,
     for (int i = 0; i < nSizes; i++)
     {
       int sizeIndex;
+      volatile int cudaPapiRetval;
       if ((pass % 2) == 0)
       sizeIndex = i;
       else
@@ -138,13 +139,13 @@ void RunBenchmark(ResultDatabase &resultDB,
       char sizeStr[256];
       sprintf(sizeStr, "% 7dkB", sizes[sizeIndex]);
 
-      StartPapiCounts();
+      StartPapiCounts(&cudaPapiRetval);
       cudaEventRecord(start, 0);
       cudaMemcpy(device, hostMem, nbytes, cudaMemcpyHostToDevice);
       cudaEventRecord(stop, 0);
       cudaEventSynchronize(stop);
 
-      StopPapiCounts("Download", sizeStr, resultDB);
+      StopPapiCounts("Download", sizeStr, resultDB, &cudaPapiRetval);
       float t = 0;
       cudaEventElapsedTime(&t, start, stop);
       //times[sizeIndex] = t;

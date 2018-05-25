@@ -19,7 +19,20 @@ CudaEvent allEvents[] = {
 
   {0, "cuda:::event:inst_executed:device=0"    },
   {0, "cuda:::event:elapsed_cycles_sm:device=0"    },
-  {0, "cuda:::metric:warp_execution_efficiency:device=0"   }
+  {0, "cuda:::metric:warp_execution_efficiency:device=0"   },
+
+  {0, "cuda:::event:gld_inst_8bit:device=0"   },
+  {0, "cuda:::event:gld_inst_16bit:device=0"   },
+  {0, "cuda:::event:gld_inst_32bit:device=0"   },
+  {0, "cuda:::event:gld_inst_64bit:device=0"   },
+  {0, "cuda:::event:gld_inst_128bit:device=0"   },
+
+  {0, "cuda:::event:gst_inst_8bit:device=0"   },
+  {0, "cuda:::event:gst_inst_16bit:device=0"   },
+  {0, "cuda:::event:gst_inst_32bit:device=0"   },
+  {0, "cuda:::event:gst_inst_64bit:device=0"   },
+  {0, "cuda:::event:gst_inst_128bit:device=0"   },
+
 };
 
 volatile size_t currCudaPapiEvent;
@@ -27,10 +40,10 @@ CudaPapiCode cudaPapiState = Stopped;
 int EventSet = PAPI_NULL;
 int currEvent;
 
-void InitCudaPapi(void)
+void _InitCudaPapi(void)
 {
   int retval;
-  currCudaPapiEvent = 0;
+  currCudaPapiEvent = 6;
 
   /* PAPI Initialization */
   retval = PAPI_library_init( PAPI_VER_CURRENT );
@@ -45,22 +58,26 @@ void InitCudaPapi(void)
       PAPI_VERSION_MINOR( PAPI_VERSION )    << "." <<
       PAPI_VERSION_REVISION( PAPI_VERSION ) << endl;
   }
+
+  _ResetCounts();
   cudaPapiState = Init;
 }
 
-void ShutdownCudaPapi(void)
+void _ShutdownCudaPapi(void)
 {
   PAPI_shutdown();
 }
 
-void StartCounters(void)
+void _StartCounters(volatile int *cudaPapiTestVal)
 {
   int retval;
   int eventCount = 0;
   int events[NUM_RECORDED_EVENTS];
 
-  if (Error == cudaPapiState)
+  if (Error == cudaPapiState) {
+    cerr << "Attempted to start event count, a pre-existing error state exists!" << endl;
     return;
+  }
 
   if (Stopped == cudaPapiState) {
     cerr << "Attempted to start event count without initializing PAPI!" << endl;
@@ -98,14 +115,21 @@ void StartCounters(void)
     CudaPapiWarning("PAPI_start failed", retval);
   }
   cudaPapiState = Started;
+  *cudaPapiTestVal = cudaPapiState;
 }
 
-void StopCounters(string testName, string attr, ResultDatabase &resultDB)
+void _StopCounters(string testName, string attr, ResultDatabase &resultDB, volatile int *cudaPapiTestVal)
 {
   long long values[1];
   int retval;
 
-  if (Error == cudaPapiState || (Init  == cudaPapiState)) {
+  if (Error == cudaPapiState) {
+    cerr << "Attempted to stop event count when a previous error state exists!" << endl;
+    return;
+  }
+
+  if (Init  == cudaPapiState) {
+    cerr << "Attempted to stop event count when a previous count has not been started!" << endl;
     return;
   }
 
@@ -132,15 +156,16 @@ void StopCounters(string testName, string attr, ResultDatabase &resultDB)
                      testName + "_" + attr + "_" + to_string(currCudaPapiEvent),
                      "count",
                      values[0]);
+  *cudaPapiTestVal = cudaPapiState;
 }
 
-void CurrentCounterInfo(string& counterName, long long& count)
+void _CurrentCounterInfo(string& counterName, long long& count)
 {
   counterName = string(allEvents[currCudaPapiEvent].eventName);
   count = allEvents[currCudaPapiEvent].eventCount;
 }
 
-void ResetCounts(void)
+void _ResetCounts(void)
 {
   int idx;
   for (idx = 0; idx < NUM_EVENTS; idx++) {
@@ -148,7 +173,7 @@ void ResetCounts(void)
   }
 }
 
-int GetNumEvents(void)
+int _GetNumEvents(void)
 {
   return NUM_EVENTS;
 }

@@ -24,11 +24,7 @@
 #include <NodeInfo.h>
 #endif
 
-// FIXME
-#define PAPI
-#ifdef PAPI
 #include "cudapapi.h"
-#endif
 
 using namespace std;
 
@@ -140,6 +136,7 @@ void EnumerateDevicesAndChoose(int chooseDevice, bool verbose)
 int main(int argc, char *argv[])
 {
     int ret = 0;
+    volatile int cudaPapiRetval;
     bool noprompt = false;
 
     try
@@ -164,6 +161,7 @@ int main(int argc, char *argv[])
         op.addOption("infoDevices", OPT_BOOL, "",
                 "show info for available platforms and devices", 'i');
         op.addOption("quiet", OPT_BOOL, "", "write minimum necessary to standard output", 'q');
+        op.addOption("event", OPT_INT, "-1", "Which event number to use");
 #ifdef _WIN32
         op.addOption("noprompt", OPT_BOOL, "", "don't wait for prompt at program exit");
 #endif
@@ -203,9 +201,9 @@ int main(int argc, char *argv[])
         device = op.getOptionVecInt("device")[0];
 #endif
 
-#ifdef PAPI
+
         InitCudaPapi();
-#endif
+
         int deviceCount;
         cudaGetDeviceCount(&deviceCount);
         if (device >= deviceCount) {
@@ -222,8 +220,17 @@ int main(int argc, char *argv[])
         }
         ResultDatabase resultDB;
 
+        int event = op.getOptionInt("event");
+
+        if (event >= 0)
+          currCudaPapiEvent = event;
+
+        StartPapiCounts(&cudaPapiRetval);
+
         // Run the benchmark
         RunBenchmark(resultDB, op);
+
+        StopPapiCounts("main.cpp", "outsideloop", resultDB, & cudaPapiRetval);
 
 #ifndef PARALLEL
         resultDB.DumpDetailed(cout);

@@ -13,8 +13,8 @@ using namespace std;
 
 void _InitCudaPapi(void);
 void _ShutdownCudaPapi(void);
-void _StartCounters(void);
-void _StopCounters(string testName, string attr, ResultDatabase &resultDB);
+void _StartCounters(volatile int *cudaPapiTestVal);
+void _StopCounters(string testName, string attr, ResultDatabase &resultDB, volatile int *cudaPapiTestVal);
 void _CurrentCounterInfo(string& counterName, long long& count);
 void _ResetCounts(void);
 int  _GetNumEvents(void);
@@ -59,9 +59,10 @@ int  _GetNumEvents(void);
 extern volatile size_t currCudaPapiEvent;
 
 #ifdef CUDAPAPI
-  #define StartPapiCounts() for(currCudaPapiEvent=0; currCudaPapiEvent < GetNumEvents(); currCudaPapiEvent++){\
-      StartCounters();
-  #define StopPapiCounts(testName, testAttrs, resultDB) StopCounters(testName, testAttrs, resultDB);}
+#define StartPapiCounts(cudaPapiTestVal) _StartCounters(cudaPapiTestVal)
+#define StopPapiCounts(testName, testAttrs, resultDB, cudaPapiTestVal) _StopCounters(testName, testAttrs, resultDB, cudaPapiTestVal)
+//  #define StartPapiCounts() for(currCudaPapiEvent=0; currCudaPapiEvent < GetNumEvents(); currCudaPapiEvent++){_StartCounters();
+//  #define StopPapiCounts(testName, testAttrs, resultDB) _StopCounters(testName, testAttrs, resultDB);}
 #else
   #define StartPapiCounts()
   #define StopPapiCounts(testName, testAttrs, resultDB)
