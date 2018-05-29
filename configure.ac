@@ -260,7 +260,7 @@ AS_IF([test "x$with_cudapapi" = xyes],
            LDFLAGS="$LDFLAGS -lpfm -lpapi"
            CUDA_CPPFLAGS="$CUDA_CPPFLAGS -DCUDAPAPI"
            CXXFLAGS="$CXXFLAGS -DCUDAPAPI"
-           AC_MSG_WARN([*** Verify that the CUDA component is built into PAPI otherwise the build will fail $CUDA_CPPFLAGS ***])
+           AC_MSG_WARN([*** Verify that the CUDA component is built into PAPI otherwise the build will fail ***])
           ],
           [AC_MSG_NOTICE([papi.h header not found])]
         )

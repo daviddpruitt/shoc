@@ -130,16 +130,22 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
         {
             double time;
             int elemsInBlock = blockSizes[i] * 1024 / sizeof(float);
-            for (int j = 0; j < halfNumFloats; ++j)
-                h_mem[j] = h_mem[halfNumFloats + j]
-                                 = (float) (drand48() * 10.0);
 
-            // Copy input memory to the device
             if (verbose)
                 cout << ">> Executing Triad with vectors of length "
                 << numMaxFloats << " and block size of "
                 << elemsInBlock << " elements." << "\n";
             sprintf(sizeStr, "Block:%05ldKB", blockSizes[i]);
+
+#ifdef CUDAPAPI
+            //SetupCounters();
+            StartPapiCountRegion();
+#endif
+            for (int j = 0; j < halfNumFloats; ++j)
+                h_mem[j] = h_mem[halfNumFloats + j]
+                                 = (float) (drand48() * 10.0);
+
+            // Copy input memory to the device
 
             // start submitting blocks of data of size elemsInBlock
             // overlap the computation of one block with the data
@@ -161,10 +167,15 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
             cudaMemcpyAsync(d_memB0, h_mem, blockSizes[i] * 1024,
                     cudaMemcpyHostToDevice, streams[0]);
             CHECK_CUDA_ERROR();
-
+#ifdef CUDAPAPI
+            StartCounters();
+#endif
             triad<<<globalWorkSize, blockSize, 0, streams[0]>>>
                     (d_memA0, d_memB0, d_memC0, scalar);
             CHECK_CUDA_ERROR();
+#ifdef CUDAPAPI
+            StopCounters();
+#endif
 
             if (elemsInBlock < numMaxFloats)
             {
@@ -201,13 +212,25 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
                     // Execute the kernel
                     if (currStream)
                     {
+#ifdef CUDAPAPI
+                        StartCounters();
+#endif
                         triad<<<globalWorkSize, blockSize, 0, streams[1]>>>
                                 (d_memA1, d_memB1, d_memC1, scalar);
+#ifdef CUDAPAPI
+                        StopCounters();
+#endif
                     }
                     else
                     {
+#ifdef CUDAPAPI
+                        StartCounters();
+#endif
                         triad<<<globalWorkSize, blockSize, 0, streams[0]>>>
                                 (d_memA0, d_memB0, d_memC0, scalar);
+#ifdef CUDAPAPI
+                        StopCounters();
+#endif
                     }
                     CHECK_CUDA_ERROR();
                 }
@@ -242,6 +265,10 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
             cudaThreadSynchronize();
             time = Timer::Stop(TH, "thread synchronize");
 
+#ifdef CUDAPAPI
+            //TeardownCounters(sizeStr, " ", resultDB);
+            EndPapiCountRegion(sizeStr, " ", resultDB);
+#endif
             //StopPapiCounts("Triad", sizeStr, resultDB, &cudaPapiTestVal);
 
             double triad = ((double)numMaxFloats * 2.0) / (time*1e9);

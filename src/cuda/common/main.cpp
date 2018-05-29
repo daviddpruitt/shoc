@@ -136,7 +136,6 @@ void EnumerateDevicesAndChoose(int chooseDevice, bool verbose)
 int main(int argc, char *argv[])
 {
     int ret = 0;
-    volatile int cudaPapiRetval;
     bool noprompt = false;
 
     try
@@ -225,12 +224,8 @@ int main(int argc, char *argv[])
         if (event >= 0)
           currCudaPapiEvent = event;
 
-        StartPapiCounts(&cudaPapiRetval);
-
         // Run the benchmark
         RunBenchmark(resultDB, op);
-
-        StopPapiCounts("main.cpp", "outsideloop", resultDB, & cudaPapiRetval);
 
 #ifndef PARALLEL
         resultDB.DumpDetailed(cout);

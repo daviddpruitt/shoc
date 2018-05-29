@@ -7,6 +7,8 @@ using namespace std;
 #define CUDA_PAPI_VERBOSE 0
 #define NUM_EVENTS 9
 
+#define checkNotInState(state, message)  if(state == cudaPapiState){cerr << message; return;}
+
 CudaEvent allEvents[] = {
   {0, "cuda:::metric:local_store_throughput:device=0"  },
   {0, "cuda:::metric:local_load_throughput:device=0"   },
@@ -35,7 +37,7 @@ CudaEvent allEvents[] = {
 
 };
 
-volatile size_t currCudaPapiEvent;
+size_t currCudaPapiEvent;
 CudaPapiCode cudaPapiState = Stopped;
 int EventSet = PAPI_NULL;
 int currEvent;
@@ -43,7 +45,7 @@ int currEvent;
 void _InitCudaPapi(void)
 {
   int retval;
-  currCudaPapiEvent = 6;
+  //currCudaPapiEvent = 0;
 
   /* PAPI Initialization */
   retval = PAPI_library_init( PAPI_VER_CURRENT );
@@ -68,21 +70,36 @@ void _ShutdownCudaPapi(void)
   PAPI_shutdown();
 }
 
-void _StartCounters(volatile int *cudaPapiTestVal)
+void _SetupCounters(void)
 {
   int retval;
   int eventCount = 0;
   int events[NUM_RECORDED_EVENTS];
 
-  if (Error == cudaPapiState) {
-    cerr << "Attempted to start event count, a pre-existing error state exists!" << endl;
-    return;
-  }
+  checkNotInState(Error, "Attempted to start event count, a pre-existing error state exists!");
+  checkNotInState(Created, "Attempted to create event count while a previous event count exists!" );
+  checkNotInState(Started, "Attempted to create event count while a previous event count is running!");
+  checkNotInState(Stopped, "Attempted to setup event count without initializing PAPI!");
 
-  if (Stopped == cudaPapiState) {
-    cerr << "Attempted to start event count without initializing PAPI!" << endl;
-    return;
-  }
+  // if (Error == cudaPapiState) {
+  //   cerr << "Attempted to start event count, a pre-existing error state exists!" << endl;
+  //   return;
+  // }
+  //
+  // if (Stopped == cudaPapiState) {
+  //   cerr << "Attempted to start event count without initializing PAPI!" << endl;
+  //   return;
+  // }
+  //
+  // if (Started == cudaPapiState) {
+  //   cerr << "Attempted to create event count while a previous event count is running!" << endl;
+  //   return;
+  // }
+  //
+  // if (Created == cudaPapiState) {
+  //   cerr << "Attempted to create event count while a previous event count exists!" << endl;
+  //   return;
+  // }
 
   /* convert PAPI native events to PAPI code */
   retval = PAPI_event_name_to_code(
@@ -110,15 +127,10 @@ void _StartCounters(volatile int *cudaPapiTestVal)
     CudaPapiWarning("PAPI_add_events failed", retval);
   }
 
-  retval = PAPI_start( EventSet );
-  if( retval != PAPI_OK ) {
-    CudaPapiWarning("PAPI_start failed", retval);
-  }
-  cudaPapiState = Started;
-  *cudaPapiTestVal = cudaPapiState;
+  cudaPapiState = Created;
 }
 
-void _StopCounters(string testName, string attr, ResultDatabase &resultDB, volatile int *cudaPapiTestVal)
+void _TeardownCounters(string testName, string attr, ResultDatabase &resultDB)
 {
   long long values[1];
   int retval;
@@ -133,14 +145,9 @@ void _StopCounters(string testName, string attr, ResultDatabase &resultDB, volat
     return;
   }
 
-  if (Stopped == cudaPapiState) {
-    cerr << "Attempted to stop event count without starting one!" << endl;
-    return;
+  if (Started == cudaPapiState) {
+    _StopCounters();
   }
-
-  retval = PAPI_stop( EventSet, values );
-  if( retval != PAPI_OK )
-    CudaPapiError("PAPI_stop failed", retval );
 
   retval = PAPI_cleanup_eventset(EventSet);
   if( retval != PAPI_OK )
@@ -150,19 +157,77 @@ void _StopCounters(string testName, string attr, ResultDatabase &resultDB, volat
   if (retval != PAPI_OK)
     CudaPapiError("PAPI_destroy_eventset failed", retval );
 
-  allEvents[currCudaPapiEvent].eventCount = values[0];
-
   resultDB.AddResult(allEvents[currCudaPapiEvent].eventName,
                      testName + "_" + attr + "_" + to_string(currCudaPapiEvent),
                      "count",
-                     values[0]);
-  *cudaPapiTestVal = cudaPapiState;
+                     allEvents[currCudaPapiEvent].eventCount);
+
+  cudaPapiState = Init;
+}
+
+void _StartCounters(void)
+{
+  int retval;
+
+  if (Error == cudaPapiState) {
+    cerr << "Attempted to start count while an error condition exists (see previous messages)!" << endl;
+    return;
+  }
+
+  if (Init == cudaPapiState) {
+    cerr << "Attempted to start count without creating one!" << endl;
+    return;
+  }
+
+  if (Started == cudaPapiState) {
+    cerr << "Attempted to start count while a previous event count is running!" << endl;
+    return;
+  }
+
+  retval = PAPI_start( EventSet );
+  if( retval != PAPI_OK ) {
+    CudaPapiWarning("PAPI_start failed", retval);
+  }
+
+  cudaPapiState = Started;
+  return;
+}
+void _StopCounters(void)
+{
+  long long values[1];
+  int retval;
+
+  if (Error == cudaPapiState) {
+    cerr << "Attempted to stop count while an error condition exists (see previous messages)!" << endl;
+    return;
+  }
+
+  if (Init == cudaPapiState) {
+    cerr << "Attempted to stop count without creating one!" << endl;
+    return;
+  }
+
+  if (Stopped == cudaPapiState) {
+    cerr << "Attempted to start count without starting one!" << endl;
+    return;
+  }
+
+  retval = PAPI_stop( EventSet, values );
+  if( retval != PAPI_OK )
+    CudaPapiError("PAPI_stop failed", retval );
+
+  allEvents[currCudaPapiEvent].eventCount += values[0];
+
+  cudaPapiState = Stopped;
+  return;
 }
 
 void _CurrentCounterInfo(string& counterName, long long& count)
 {
   counterName = string(allEvents[currCudaPapiEvent].eventName);
   count = allEvents[currCudaPapiEvent].eventCount;
+
+  cudaPapiState = Stopped;
 }
 
 void _ResetCounts(void)

@@ -13,8 +13,11 @@ using namespace std;
 
 void _InitCudaPapi(void);
 void _ShutdownCudaPapi(void);
-void _StartCounters(volatile int *cudaPapiTestVal);
-void _StopCounters(string testName, string attr, ResultDatabase &resultDB, volatile int *cudaPapiTestVal);
+void _SetupCounters(void);
+void _TeardownCounters(string testName, string attr, ResultDatabase &resultDB);
+void _StartCounters(void);
+void _StopCounters(void);
+void _AccumulateCounters(void);
 void _CurrentCounterInfo(string& counterName, long long& count);
 void _ResetCounts(void);
 int  _GetNumEvents(void);
@@ -23,16 +26,22 @@ int  _GetNumEvents(void);
 #ifdef CUDAPAPI
   #define InitCudaPapi _InitCudaPapi
   #define ShutdownCudaPapi_ ShutdownCudaPapi
+  #define SetupCounters _SetupCounters
+  #define TeardownCounters _TeardownCounters
   #define StartCounters _StartCounters
   #define StopCounters _StopCounters
+  //#define AccumulateCounters _AccumulateCounters
   #define CurrentCounterInfo _CurrentCounterInfo
   #define ResetCounts _ResetCounts
   #define GetNumEvents _GetNumEvents
 #else
   #define InitCudaPapi()
   #define ShutdownCudaPapi()
+  #define SetupCounters()
+  #define TeardownCounters(x,y,z)
   #define StartCounters()
-  #define StopCounters(x,y,z)
+  #define StopCounters()
+  //#define AccumulateCounters()
   #define CurrentCounterInfo()
   #define ResetCounts()
   #define GetNumEvents()
@@ -56,16 +65,16 @@ int  _GetNumEvents(void);
 
 // These are macros instead of functions, that way the caller doesn't have to
 // worry about cycling through all the events, we'll take care of it
-extern volatile size_t currCudaPapiEvent;
+extern size_t currCudaPapiEvent;
 
 #ifdef CUDAPAPI
-#define StartPapiCounts(cudaPapiTestVal) _StartCounters(cudaPapiTestVal)
-#define StopPapiCounts(testName, testAttrs, resultDB, cudaPapiTestVal) _StopCounters(testName, testAttrs, resultDB, cudaPapiTestVal)
-//  #define StartPapiCounts() for(currCudaPapiEvent=0; currCudaPapiEvent < GetNumEvents(); currCudaPapiEvent++){_StartCounters();
-//  #define StopPapiCounts(testName, testAttrs, resultDB) _StopCounters(testName, testAttrs, resultDB);}
+// #define StartPapiCountRegion(cudaPapiTestVal) _StartCounters(cudaPapiTestVal)
+// #define StopPapiCountRegion(testName, testAttrs, resultDB, cudaPapiTestVal) _StopCounters(testName, testAttrs, resultDB, cudaPapiTestVal)
+ #define StartPapiCountRegion() for(currCudaPapiEvent=0; currCudaPapiEvent < GetNumEvents(); currCudaPapiEvent++){_SetupCounters();
+ #define EndPapiCountRegion(testName, testAttrs, resultDB) _TeardownCounters(testName, testAttrs, resultDB);}
 #else
-  #define StartPapiCounts()
-  #define StopPapiCounts(testName, testAttrs, resultDB)
+  #define StartPapiCountRegion()
+  #define EndPapiCountRegion(testName, testAttrs, resultDB)
 #endif
 
 
@@ -76,6 +85,6 @@ typedef struct CudaEvent_st {
                   // also compiler crashes if you leave it as variable size
 } CudaEvent;
 
-enum CudaPapiCode {Error = 0, Init, Started, Stopped};
+enum CudaPapiCode {Error = 0, Init, Created, Started, Stopped};
 
 #endif // CUDAPAPI_H
